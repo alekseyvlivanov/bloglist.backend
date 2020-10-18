@@ -20,15 +20,33 @@ const mostBlogs = (blogs) => {
     return {};
   }
 
-  const [author, countedBlogs] = _.sortBy(
+  const [author, authorBlogs] = _.sortBy(
     _.toPairs(_.countBy(blogs, 'author')),
     1,
   ).reverse()[0];
 
   return {
     author,
-    blogs: countedBlogs,
+    blogs: authorBlogs,
   };
+};
+
+const mostLikes = (blogs) => {
+  if (blogs.length === 0) {
+    return {};
+  }
+
+  const reducer = (acc, item) => {
+    acc[item.author] = _.get(acc, item.author, 0) + item.likes;
+    return acc;
+  };
+
+  const [author, authorLikes] = _.sortBy(
+    _.toPairs(blogs.reduce(reducer, {})),
+    1,
+  ).reverse()[0];
+
+  return { author, likes: authorLikes };
 };
 
 const totalLikes = (blogs) => {
@@ -37,4 +55,4 @@ const totalLikes = (blogs) => {
   return blogs.reduce(reducer, 0);
 };
 
-module.exports = { dummy, favoriteBlog, mostBlogs, totalLikes };
+module.exports = { dummy, favoriteBlog, mostBlogs, mostLikes, totalLikes };
