@@ -61,6 +61,17 @@ test('addition of a new blog with default likes', async () => {
   expect(titles).toContain('smth perfect');
 });
 
+test('addition of a new blog with invalid data', async () => {
+  const newBlog = {
+    url: 'http://example.com',
+  };
+
+  await request(app).post('/api/blogs').send(newBlog).expect(400);
+
+  const blogsAtEnd = await blogsInDb();
+  expect(blogsAtEnd.length).toBe(initialBlogs.length);
+});
+
 afterAll(() => {
   mongoose.connection.close();
 });
