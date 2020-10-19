@@ -39,23 +39,25 @@ test('blogs have id property instead of _id', async () => {
   expect(blog._id).not.toBeDefined();
 });
 
-test('addition of a new blog', async () => {
+test('addition of a new blog with default likes', async () => {
   const newBlog = {
     title: 'smth perfect',
     author: 'unknown',
     url: 'http://example.com',
   };
 
-  await request(app)
+  const response = await request(app)
     .post('/api/blogs')
     .send(newBlog)
     .expect(201)
     .expect('Content-Type', /application\/json/);
 
+  expect(response.body.likes).toBe(0);
+
   const blogsAtEnd = await blogsInDb();
   expect(blogsAtEnd.length).toBe(initialBlogs.length + 1);
 
-  const titles = blogsAtEnd.map((n) => n.title);
+  const titles = blogsAtEnd.map((blog) => blog.title);
   expect(titles).toContain('smth perfect');
 });
 
