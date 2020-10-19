@@ -1,6 +1,6 @@
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "request.*.expect"] }] */
 /* eslint-disable no-underscore-dangle */
-const { afterAll, expect, test, beforeEach } = require('@jest/globals');
+const { afterAll, beforeEach, expect, test } = require('@jest/globals');
 
 const mongoose = require('mongoose');
 const request = require('supertest');
@@ -58,7 +58,7 @@ test('addition of a new blog with default likes', async () => {
   expect(blogsAtEnd.length).toBe(initialBlogs.length + 1);
 
   const titles = blogsAtEnd.map((blog) => blog.title);
-  expect(titles).toContain('smth perfect');
+  expect(titles).toContain(newBlog.title);
 });
 
 test('addition of a new blog with invalid data', async () => {
@@ -70,6 +70,21 @@ test('addition of a new blog with invalid data', async () => {
 
   const blogsAtEnd = await blogsInDb();
   expect(blogsAtEnd.length).toBe(initialBlogs.length);
+});
+
+test('deletion of a note', async () => {
+  const blogsAtStart = await blogsInDb();
+  const blogToDelete = blogsAtStart[0];
+
+  await request(app).delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+
+  const blogsAtEnd = await blogsInDb();
+
+  expect(blogsAtEnd.length).toBe(initialBlogs.length - 1);
+
+  const titles = blogsAtEnd.map((blog) => blog.title);
+
+  expect(titles).not.toContain(blogToDelete.title);
 });
 
 afterAll(() => {
