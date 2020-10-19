@@ -1,4 +1,5 @@
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "request.*.expect"] }] */
+/* eslint-disable no-underscore-dangle */
 const { afterAll, expect, test, beforeEach } = require('@jest/globals');
 
 const mongoose = require('mongoose');
@@ -28,6 +29,14 @@ test('all blogs are returned', async () => {
   const response = await request(app).get('/api/blogs');
 
   expect(response.body.length).toBe(initialBlogs.length);
+});
+
+test('blogs have id property instead of _id', async () => {
+  const response = await request(app).get('/api/blogs');
+  const blog = response.body[0];
+
+  expect(blog.id).toBeDefined();
+  expect(blog._id).not.toBeDefined();
 });
 
 afterAll(() => {
