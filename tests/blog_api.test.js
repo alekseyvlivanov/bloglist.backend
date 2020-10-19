@@ -7,7 +7,7 @@ const request = require('supertest');
 
 const app = require('../app.js');
 const Blog = require('../models/blog.js');
-const { initialBlogs } = require('./test_helper.js');
+const { blogsInDb, initialBlogs } = require('./test_helper.js');
 
 beforeEach(async () => {
   await Blog.deleteMany({});
@@ -37,6 +37,26 @@ test('blogs have id property instead of _id', async () => {
 
   expect(blog.id).toBeDefined();
   expect(blog._id).not.toBeDefined();
+});
+
+test('addition of a new blog', async () => {
+  const newBlog = {
+    title: 'smth perfect',
+    author: 'unknown',
+    url: 'http://example.com',
+  };
+
+  await request(app)
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/);
+
+  const blogsAtEnd = await blogsInDb();
+  expect(blogsAtEnd.length).toBe(initialBlogs.length + 1);
+
+  const titles = blogsAtEnd.map((n) => n.title);
+  expect(titles).toContain('smth perfect');
 });
 
 afterAll(() => {
