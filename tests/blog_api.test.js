@@ -87,6 +87,21 @@ test('deletion of a note', async () => {
   expect(titles).not.toContain(blogToDelete.title);
 });
 
+test('updating of a note', async () => {
+  const blogsAtStart = await blogsInDb();
+  const blogToUpdate = blogsAtStart[0];
+
+  blogToUpdate.likes += 3;
+
+  await request(app)
+    .put(`/api/blogs/${blogToUpdate.id}`)
+    .send(blogToUpdate)
+    .expect(200);
+
+  const blogsAtEnd = await blogsInDb();
+  expect(blogsAtEnd[0].likes).toBe(blogToUpdate.likes);
+});
+
 afterAll(() => {
   mongoose.connection.close();
 });
