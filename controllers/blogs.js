@@ -47,14 +47,19 @@ blogsRouter.delete('/:id', async (request, response) => {
   }
 
   const blog = await Blog.findById(request.params.id);
+  const user = await User.findById(decodedToken.id);
 
-  if (blog.user.toString() !== decodedToken.id) {
+  if (blog.user.toString() !== user.id.toString()) {
     return response
       .status(401)
       .json({ error: "you don't have permission to delete this blog" });
   }
 
-  await blog.deleteOne();
+  await blog.remove();
+  user.blogs = user.blogs.filter(
+    (b) => b.id.toString() !== request.params.id.toString(),
+  );
+  await user.save();
 
   return response.status(204).end();
 });
