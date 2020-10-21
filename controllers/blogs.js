@@ -13,7 +13,7 @@ blogsRouter.post('/', async (request, response) => {
   const { body } = request;
 
   if (!body.title && !body.author) {
-    return response.status(400).end();
+    return response.status(400).json({ error: 'title and author missing' });
   }
 
   const decodedToken = jwt.verify(request.token, process.env.SECRET);

@@ -7,12 +7,29 @@ const request = require('supertest');
 
 const app = require('../app.js');
 const Blog = require('../models/blog.js');
+const User = require('../models/user.js');
 const { blogsInDb, initialBlogs } = require('./test_helper.js');
 
+const loginUser = async (username, password) => {
+  const response = await request(app)
+    .post('/api/login')
+    .send({ username, password });
+  return response.body;
+};
+
+let userToken;
+
 beforeEach(async () => {
+  const { username, token } = await loginUser('root', 'sekret');
+  userToken = token;
+
+  const user = await User.findOne({ username });
+
   await Blog.deleteMany({});
 
-  const blogObjects = initialBlogs.map((blog) => new Blog(blog));
+  const blogObjects = initialBlogs.map(
+    (blog) => new Blog({ ...blog, user: user._id }),
+  );
   const promiseArray = blogObjects.map((blog) => blog.save());
 
   await Promise.all(promiseArray);
@@ -39,6 +56,25 @@ test('blogs have id property instead of _id', async () => {
   expect(blog._id).not.toBeDefined();
 });
 
+test('addition of a new blog without token', async () => {
+  const newBlog = {
+    title: 'smth perfect',
+    author: 'unknown',
+    url: 'http://example.com',
+  };
+
+  const result = await request(app)
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(401)
+    .expect('Content-Type', /application\/json/);
+
+  expect(result.body.error).toBe('invalid token');
+
+  const blogsAtEnd = await blogsInDb();
+  expect(blogsAtEnd.length).toBe(initialBlogs.length);
+});
+
 test('addition of a new blog with default likes', async () => {
   const newBlog = {
     title: 'smth perfect',
@@ -48,6 +84,7 @@ test('addition of a new blog with default likes', async () => {
 
   const response = await request(app)
     .post('/api/blogs')
+    .set('Authorization', `bearer ${userToken}`)
     .send(newBlog)
     .expect(201)
     .expect('Content-Type', /application\/json/);
@@ -66,28 +103,50 @@ test('addition of a new blog with invalid data', async () => {
     url: 'http://example.com',
   };
 
-  await request(app).post('/api/blogs').send(newBlog).expect(400);
+  const result = await request(app)
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(400)
+    .expect('Content-Type', /application\/json/);
+
+  expect(result.body.error).toContain('title and author missing');
 
   const blogsAtEnd = await blogsInDb();
   expect(blogsAtEnd.length).toBe(initialBlogs.length);
 });
 
-test('deletion of a note', async () => {
+test('deletion of a blog with token', async () => {
   const blogsAtStart = await blogsInDb();
   const blogToDelete = blogsAtStart[0];
 
-  await request(app).delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+  await request(app)
+    .delete(`/api/blogs/${blogToDelete.id}`)
+    .set('Authorization', `bearer ${userToken}`)
+    .expect(204);
 
   const blogsAtEnd = await blogsInDb();
-
   expect(blogsAtEnd.length).toBe(initialBlogs.length - 1);
 
   const titles = blogsAtEnd.map((blog) => blog.title);
-
   expect(titles).not.toContain(blogToDelete.title);
 });
 
-test('updating of a note', async () => {
+test('deletion of a blog without token', async () => {
+  const blogsAtStart = await blogsInDb();
+  const blogToDelete = blogsAtStart[0];
+
+  const result = await request(app)
+    .delete(`/api/blogs/${blogToDelete.id}`)
+    .expect(401)
+    .expect('Content-Type', /application\/json/);
+
+  expect(result.body.error).toContain('invalid token');
+
+  const blogsAtEnd = await blogsInDb();
+  expect(blogsAtEnd.length).toBe(initialBlogs.length);
+});
+
+test('updating of a blog', async () => {
   const blogsAtStart = await blogsInDb();
   const blogToUpdate = blogsAtStart[0];
 
