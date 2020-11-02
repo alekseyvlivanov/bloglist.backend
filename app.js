@@ -1,3 +1,4 @@
+/* eslint-disable global-require */
 const cors = require('cors');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -39,6 +40,11 @@ app.use(middleware.tokenExtractor);
 app.use('/api/blogs', blogsRouter);
 app.use('/api/login', loginRouter);
 app.use('/api/users', usersRouter);
+
+if (process.env.NODE_ENV === 'test') {
+  const testingRouter = require('./controllers/testing.js');
+  app.use('/api/testing', testingRouter);
+}
 
 app.use(middleware.unknownEndpoint);
 app.use(middleware.errorHandler);
